@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "cli": "npm run build --silent && node dist/src/main.js",
-    "test": "npm run build --silent && node --test dist/tests",
+    "test": "npm run build --silent && node dist/scripts/TestRunner.js",
     "check": "npm test",
     "demo": "npm run cli -- --script examples/flowchart.txt"
   },
