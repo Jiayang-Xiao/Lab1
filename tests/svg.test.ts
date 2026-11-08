@@ -48,3 +48,23 @@ test('外部 SVG 的 px 尺寸、根样式、独立 viewBox 和文本样式可�
   assert.match(codec.encode(doc), /fill="red"/);
   assert.match(codec.encode(doc), /text-anchor="middle"/);
 });
+
+test('课件中的嵌套 translate + scale 被规范化，保留文本及笔画视觉尺寸', () => {
+  const codec = new SvgCodec();
+  const doc = codec.decode('<svg width="400" height="200"><g id="diagram" transform="translate(60,40)" stroke="black" stroke-width="2"><rect id="a" width="120" height="60"/><g id="nodeB" transform="translate(200,0) scale(0.8)"><rect id="b" width="120" height="60"/><text id="t" x="60" y="38" font-size="16">End</text></g></g></svg>').document;
+  assert.equal(doc.find('a').positionSummary(), '(60,40)');
+  assert.equal(doc.find('b').geometrySummary(), 'x=260 y=40 w=96 h=48');
+  assert.equal(doc.find('t').positionSummary(), '(308,70.4)');
+  assert.match(doc.find('t').paintSummary(), /font-size=12.8/);
+  assert.match(doc.find('b').paintSummary(), /stroke-width=1.6/);
+  assert.doesNotMatch(codec.encode(doc), /transform=/);
+  doc.move('nodeB', 10, 20);
+  assert.equal(doc.find('b').positionSummary(), '(270,60)');
+});
+
+test('超出本阶段几何模型的旋转、非等比缩放明确报错', () => {
+  const codec = new SvgCodec();
+  for (const transform of ['rotate(30)', 'scale(2,3)', 'scale(-1)', 'matrix(1,0,0,1,0,0)']) {
+    assert.throws(() => codec.decode(`<svg><g id="g" transform="${transform}"/></svg>`));
+  }
+});

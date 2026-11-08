@@ -24,6 +24,7 @@ export abstract class Shape {
   get parent(): GroupShape | undefined { return this.owner; }
   get children(): readonly Shape[] { return []; }
   get textContent(): string | undefined { return undefined; }
+  get hasGeometry(): boolean { return this.geometry.keys.length > 0; }
   protected get parameterNames(): readonly string[] { return this.geometry.keys; }
   protected get optionalPaint(): string | undefined { return 'fill'; }
 
@@ -40,6 +41,10 @@ export abstract class Shape {
   }
   move(dx: number, dy: number): void { this.geometry.move(dx, dy); }
   scale(factor: number): void { this.geometry.scale(factor); }
+  transformOwnGeometry(factor: number, dx: number, dy: number): void {
+    this.geometry.scale(factor);
+    this.geometry.move(dx, dy);
+  }
   setAttribute(name: string, value: string): void {
     if (Shape.paint.has(name)) {
       Shape.validateText(value);

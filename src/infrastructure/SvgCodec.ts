@@ -5,6 +5,7 @@ import { Canvas } from '../domain/Canvas';
 import { NumericValue } from '../domain/NumericValue';
 import { Shape } from '../domain/Shape';
 import { ShapeFactory } from '../domain/ShapeFactory';
+import { SvgTransform } from './SvgTransform';
 
 export class SvgCodec implements DocumentCodec {
   private static readonly namespace = 'http://www.w3.org/2000/svg';
@@ -51,7 +52,7 @@ export class SvgCodec implements DocumentCodec {
     const canvas = new Canvas(width, height);
     if (viewBox) canvas.setViewBox(viewBox[0]!, viewBox[1]!, viewBox[2]!, viewBox[3]!);
     for (const attr of Array.from(root.attributes)) {
-      if (['width', 'height', 'viewBox', 'version'].includes(attr.name) || this.isNamespace(attr.name)) continue;
+      if (['width', 'height', 'viewBox', 'version', 'transform'].includes(attr.name) || this.isNamespace(attr.name)) continue;
       canvas.importRootAttribute(attr.name, attr.value);
     }
     const elements = this.elementChildren(root);
@@ -67,11 +68,14 @@ export class SvgCodec implements DocumentCodec {
     reserve(root);
     const warnings: string[] = [];
     const counters = new Map<string, number>();
-    for (const element of elements) canvas.add(this.readShape(element, reserved, counters, warnings));
+    const transform = SvgTransform.parse(root.getAttribute('transform') ?? '');
+    for (const element of elements) canvas.add(this.readShape(element, reserved, counters, warnings, transform,
+      root.getAttribute('stroke-width') ?? '1', root.getAttribute('font-size') ?? '16'));
     this.checkText(root);
     return { document: canvas, warnings };
   }
-  private readShape(element: Element, reserved: Set<string>, counters: Map<string, number>, warnings: string[]): Shape {
+  private readShape(element: Element, reserved: Set<string>, counters: Map<string, number>, warnings: string[],
+    parentTransform: SvgTransform, parentStroke: string, parentFont: string): Shape {
     this.checkNamespace(element);
     const type = element.localName ?? element.tagName;
     let id = element.getAttribute('id');
@@ -83,8 +87,11 @@ export class SvgCodec implements DocumentCodec {
       warnings.push(`warning: assigned id ${id} to unnamed <${type}>`);
     }
     const shape = this.factory.empty(type, id);
+    const transform = parentTransform.compose(SvgTransform.parse(element.getAttribute('transform') ?? ''));
+    const stroke = element.getAttribute('stroke-width') ?? parentStroke;
+    const font = element.getAttribute('font-size') ?? parentFont;
     for (const attr of Array.from(element.attributes)) {
-      if (attr.name === 'id' || this.isNamespace(attr.name)) continue;
+      if (attr.name === 'id' || attr.name === 'transform' || this.isNamespace(attr.name)) continue;
       shape.importAttribute(attr.name, attr.value);
     }
     if (shape.textContent !== undefined) shape.setAttribute('text', element.textContent ?? '');
@@ -92,8 +99,9 @@ export class SvgCodec implements DocumentCodec {
     const children = this.elementChildren(element);
     if (children.length) {
       const group = shape.asContainer();
-      for (const child of children) group.collection.insert(this.readShape(child, reserved, counters, warnings));
+      for (const child of children) group.collection.insert(this.readShape(child, reserved, counters, warnings, transform, stroke, font));
     }
+    transform.apply(shape, stroke, font);
     return shape;
   }
   private elementChildren(node: Node): Element[] {
