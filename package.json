@@ -3,12 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "description": "高级软件开发技术 Lab1 Phase 1：面向对象 SVG CLI",
-  "engines": { "node": ">=18.18" },
+  "engines": {
+    "node": ">=18.18"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "cli": "npm run build --silent && node dist/src/main.js",
     "test": "npm run build --silent && node --test dist/tests/*.test.js",
     "check": "npm test",
     "demo": "npm run cli -- --script examples/flowchart.txt"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "0.9.12"
+  },
+  "devDependencies": {
+    "@types/node": "18.19.130",
+    "typescript": "5.9.3"
   }
 }
