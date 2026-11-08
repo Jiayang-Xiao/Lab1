@@ -1,0 +1,14 @@
+{
+  "name": "lab1-svg-editor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "高级软件开发技术 Lab1 Phase 1：面向对象 SVG CLI",
+  "engines": { "node": ">=18.18" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "cli": "npm run build --silent && node dist/src/main.js",
+    "test": "npm run build --silent && node --test dist/tests/*.test.js",
+    "check": "npm test",
+    "demo": "npm run cli -- --script examples/flowchart.txt"
+  }
+}
