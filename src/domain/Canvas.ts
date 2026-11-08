@@ -7,18 +7,43 @@ export class Canvas {
   private canvasWidth: number;
   private canvasHeight: number;
   private readonly content = new ShapeCollection();
+  private coordinateBox: readonly number[];
+  private readonly appearance = new GroupShape('__canvas_attributes__');
+  private rootId: string | undefined;
   constructor(width = 800, height = 600) {
     this.canvasWidth = NumericValue.positive(width, 'canvas width');
     this.canvasHeight = NumericValue.positive(height, 'canvas height');
+    this.coordinateBox = [0, 0, width, height];
   }
   get width(): number { return this.canvasWidth; }
   get height(): number { return this.canvasHeight; }
   get children(): readonly Shape[] { return this.content.all; }
+  get viewBox(): string { return this.coordinateBox.join(' '); }
+  setViewBox(x: number, y: number, width: number, height: number): void {
+    NumericValue.finite(x, 'viewBox x');
+    NumericValue.finite(y, 'viewBox y');
+    NumericValue.positive(width, 'viewBox width');
+    NumericValue.positive(height, 'viewBox height');
+    this.coordinateBox = [x, y, width, height];
+  }
+  importRootAttribute(name: string, value: string): void {
+    if (name === 'id') {
+      Shape.validateText(value);
+      if (!value || /\s/.test(value)) throw new Error('invalid root id');
+      this.ensureAvailable(value);
+      this.rootId = value;
+    } else this.appearance.importAttribute(name, value);
+  }
+  rootAttributes(): readonly [string, string][] {
+    return [...(this.rootId ? [['id', this.rootId] as [string, string]] : []),
+      ...this.appearance.attributes().filter(([name]) => name !== 'id')];
+  }
   resize(width: number, height: number): void {
     NumericValue.positive(width, 'canvas width');
     NumericValue.positive(height, 'canvas height');
     this.canvasWidth = width;
     this.canvasHeight = height;
+    this.coordinateBox = [0, 0, width, height];
   }
   allShapes(): readonly Shape[] {
     const visit = (shape: Shape): Shape[] => [shape, ...shape.children.flatMap(visit)];
@@ -30,7 +55,7 @@ export class Canvas {
     return shape;
   }
   private ensureAvailable(id: string): void {
-    if (this.allShapes().some(shape => shape.id === id)) throw new Error(`id already exists: ${id}`);
+    if (id === this.rootId || this.allShapes().some(shape => shape.id === id)) throw new Error(`id already exists: ${id}`);
   }
   private collectionOf(shape: Shape): ShapeCollection { return shape.parent?.collection ?? this.content; }
   private container(id: string): GroupShape {
@@ -119,6 +144,8 @@ export class Canvas {
   }
   clone(): Canvas {
     const copy = new Canvas(this.width, this.height);
+    copy.coordinateBox = [...this.coordinateBox];
+    for (const [name, value] of this.rootAttributes()) copy.importRootAttribute(name, value);
     for (const child of this.children) copy.content.insert(child.clone());
     return copy;
   }

@@ -55,6 +55,7 @@ export abstract class Shape {
     } else throw new Error(`unknown attribute: ${name}`);
   }
   importAttribute(name: string, value: string): void {
+    if (this.geometry.has(name) || name === 'stroke-width') value = value.replace(/px$/, '');
     if (Shape.importable.has(name)) {
       Shape.validateText(value);
       this.imported.set(name, value);
