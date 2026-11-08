@@ -1,0 +1,27 @@
+@startuml
+!pragma layout smetana
+title Lab1 SVG 编辑器：模块与依赖
+skinparam defaultFontName Microsoft YaHei
+skinparam backgroundColor #ffffff
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam ArrowColor #45617c
+skinparam componentBackgroundColor #eaf2fa
+skinparam packageBackgroundColor #f5f8fc
+
+component "main.ts\n依赖装配" as main
+package "cli\n分词、分发、REPL、呈现" as cli
+package "application\nEditor、Command、历史、端口" as application
+package "domain\nShape、GroupShape、Canvas" as domain
+package "infrastructure\nSVG/XML、文件读写" as infrastructure
+
+main --> cli
+main --> application
+main --> infrastructure
+cli --> application
+cli --> domain
+application --> domain
+infrastructure --> application : 实现端口
+infrastructure --> domain
+@enduml
